@@ -4,6 +4,46 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile, requireRole } from "@/lib/auth";
+import { emitJobEvent } from "@/lib/ghl";
+
+interface JobWithCustomer {
+  id: string;
+  job_number: string | null;
+  status: string;
+  scheduled_install_date: string | null;
+  installed_at: string | null;
+  completed_at: string | null;
+  quote: {
+    total_cents: number;
+    lead: { customer_name: string } | null;
+  } | null;
+}
+
+async function fetchJobForWebhook(jobId: string): Promise<JobWithCustomer | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("jobs")
+    .select("id, job_number, status, scheduled_install_date, installed_at, completed_at, quote:quotes(total_cents, lead:leads(customer_name))")
+    .eq("id", jobId)
+    .single();
+  return data as unknown as JobWithCustomer;
+}
+
+function jobToWebhook(job: JobWithCustomer | null, event: string) {
+  if (!job) return null;
+  return {
+    event,
+    job_id: job.id,
+    job_number: job.job_number,
+    customer_name: job.quote?.lead?.customer_name ?? "—",
+    status: job.status,
+    scheduled_install_date: job.scheduled_install_date,
+    installed_at: job.installed_at,
+    completed_at: job.completed_at,
+    contract_total_cents: job.quote?.total_cents ?? null,
+    occurred_at: new Date().toISOString(),
+  };
+}
 
 export async function updateJob(jobId: string, payload: Record<string, unknown>) {
   await requireProfile();
@@ -11,6 +51,73 @@ export async function updateJob(jobId: string, payload: Record<string, unknown>)
   const { error } = await supabase.from("jobs").update(payload).eq("id", jobId);
   if (error) throw error;
   revalidatePath(`/jobs/${jobId}`);
+}
+
+const JobStatuses = [
+  "pending_order",
+  "ordered",
+  "in_production",
+  "ready_to_install",
+  "scheduled",
+  "installed",
+  "completed",
+  "cancelled",
+] as const;
+
+export async function updateJobStatus(jobId: string, status: string) {
+  await requireRole("admin");
+  if (!(JobStatuses as readonly string[]).includes(status)) {
+    throw new Error(`Invalid status: ${status}`);
+  }
+  const supabase = await createClient();
+  const patch: Record<string, unknown> = { status };
+  // Auto-stamp timestamps when crossing certain stages
+  if (status === "installed") patch.installed_at = new Date().toISOString();
+  if (status === "completed") patch.completed_at = new Date().toISOString();
+  const { error } = await supabase.from("jobs").update(patch).eq("id", jobId);
+  if (error) throw error;
+
+  const webhookPayload = jobToWebhook(await fetchJobForWebhook(jobId), "job.status_changed");
+  if (webhookPayload) emitJobEvent(webhookPayload);
+
+  revalidatePath("/jobs");
+  revalidatePath(`/jobs/${jobId}`);
+}
+
+export async function markManufacturerOrderSent(jobId: string, formData: FormData) {
+  await requireRole("admin");
+  const supabase = await createClient();
+
+  const manufacturerId = String(formData.get("manufacturer_id") ?? "").trim();
+  const sentTo = String(formData.get("sent_to") ?? "").trim();
+  const orderNumber = String(formData.get("order_number") ?? "").trim();
+
+  const patch: Record<string, unknown> = {
+    manufacturer_order_sent_at: new Date().toISOString(),
+    manufacturer_order_sent_to: sentTo || null,
+    manufacturer_order_placed_at: new Date().toISOString(),
+  };
+  if (manufacturerId) patch.manufacturer_id = manufacturerId;
+  if (orderNumber) patch.manufacturer_order_number = orderNumber;
+
+  // If still in pending_order, advance to ordered
+  const { data: existing } = await supabase.from("jobs").select("status, manufacturer_name").eq("id", jobId).single();
+  if (existing?.status === "pending_order") patch.status = "ordered";
+
+  // If a manufacturer was picked, copy the name onto the job for display
+  if (manufacturerId) {
+    const { data: m } = await supabase.from("manufacturers").select("name").eq("id", manufacturerId).single();
+    if (m?.name) patch.manufacturer_name = m.name;
+  }
+
+  const { error } = await supabase.from("jobs").update(patch).eq("id", jobId);
+  if (error) throw error;
+
+  const webhookPayload = jobToWebhook(await fetchJobForWebhook(jobId), "job.manufacturer_ordered");
+  if (webhookPayload) emitJobEvent(webhookPayload);
+
+  revalidatePath(`/jobs/${jobId}`);
+  revalidatePath("/jobs");
 }
 
 const LaborPayoutSchema = z.object({

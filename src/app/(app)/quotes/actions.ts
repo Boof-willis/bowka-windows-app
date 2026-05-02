@@ -115,6 +115,55 @@ export async function sendQuote(quoteId: string) {
   revalidatePath(`/quotes/${quoteId}`);
 }
 
+export async function recordFinancingApproval(quoteId: string, formData: FormData) {
+  await requireProfile();
+  const supabase = await createClient();
+
+  const planCode = String(formData.get("plan_code") ?? "").trim();
+  const appId = String(formData.get("application_id") ?? "").trim();
+  const approvedDollars = parseFloat(String(formData.get("approved_amount") ?? "0"));
+  const status = String(formData.get("financing_status") ?? "approved");
+
+  let loanPlanId: string | null = null;
+  if (planCode) {
+    const { data: plan } = await supabase
+      .from("loan_plans")
+      .select("id")
+      .eq("plan_code", planCode)
+      .eq("active", true)
+      .limit(1)
+      .maybeSingle();
+    if (plan) loanPlanId = plan.id;
+  }
+
+  const patch: Record<string, unknown> = {
+    financing_application_id: appId || null,
+    financing_status: status,
+    financing_approved_at: status === "approved" ? new Date().toISOString() : null,
+    financing_approved_amount_cents: approvedDollars > 0 ? Math.round(approvedDollars * 100) : null,
+    payment_method: "finance",
+  };
+  if (loanPlanId) patch.loan_plan_id = loanPlanId;
+
+  const { error } = await supabase.from("quotes").update(patch).eq("id", quoteId);
+  if (error) throw error;
+  revalidatePath(`/quotes/${quoteId}`);
+}
+
+export async function recordContractSigned(quoteId: string, provider = "manual") {
+  await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("quotes")
+    .update({
+      contract_signed_at: new Date().toISOString(),
+      contract_provider: provider,
+    })
+    .eq("id", quoteId);
+  if (error) throw error;
+  revalidatePath(`/quotes/${quoteId}`);
+}
+
 export async function acceptQuote(quoteId: string) {
   await requireProfile();
   const supabase = await createClient();

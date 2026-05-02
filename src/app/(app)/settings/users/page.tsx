@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,12 +9,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
+// Profile role/active changes use the service-role client to bypass RLS.
+// Authorization is enforced by requireRole("admin") above.
 async function updateRole(formData: FormData) {
   "use server";
   await requireRole("admin");
   const id = String(formData.get("id"));
   const role = String(formData.get("role"));
-  const supabase = await createClient();
+  const supabase = createServiceClient();
   await supabase.from("profiles").update({ role }).eq("id", id);
   revalidatePath("/settings/users");
 }
@@ -24,7 +26,7 @@ async function toggleActive(formData: FormData) {
   await requireRole("admin");
   const id = String(formData.get("id"));
   const active = formData.get("active") === "true";
-  const supabase = await createClient();
+  const supabase = createServiceClient();
   await supabase.from("profiles").update({ active }).eq("id", id);
   revalidatePath("/settings/users");
 }

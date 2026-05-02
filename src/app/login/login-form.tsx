@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -17,9 +18,8 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [magicSent, setMagicSent] = useState(false);
 
-  async function signInPassword(e: React.FormEvent) {
+  async function signIn(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -30,20 +30,6 @@ export function LoginForm() {
     else router.replace(next);
   }
 
-  async function sendMagicLink() {
-    if (!email) return setError("Enter your email first");
-    setLoading(true);
-    setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${window.location.origin}${next}` },
-    });
-    setLoading(false);
-    if (error) setError(error.message);
-    else setMagicSent(true);
-  }
-
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-sm">
@@ -52,27 +38,42 @@ export function LoginForm() {
           <CardDescription>Sign in with your admin, rep, or installer account.</CardDescription>
         </CardHeader>
         <CardContent>
-          {magicSent ? (
-            <p className="text-sm text-muted-foreground">Magic link sent. Check your inbox.</p>
-          ) : (
-            <form className="space-y-4" onSubmit={signInPassword}>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-              </div>
-              <div className="space-y-2">
+          <form className="space-y-4" onSubmit={signIn}>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                >
+                  Forgot password?
+                </Link>
               </div>
-              {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Signing in…" : "Sign in"}
-              </Button>
-              <Button type="button" variant="ghost" className="w-full" onClick={sendMagicLink} disabled={loading}>
-                Send magic link instead
-              </Button>
-            </form>
-          )}
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Signing in…" : "Sign in"}
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>

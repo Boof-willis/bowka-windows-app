@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronRight, Droplets, Landmark, ShieldCheck, Users } from "lucide-react";
+import { ChevronRight, Droplets, Factory, Landmark, Plug, ShieldCheck, Users } from "lucide-react";
 
 const SECTIONS = [
   { href: "/settings/consumables", title: "Consumable rates", description: "Per-window costs for nails, caulk, foam, etc.", icon: Droplets },
   { href: "/settings/loan-plans", title: "Loan plans", description: "Lenders + merchant fees per plan.", icon: Landmark },
   { href: "/settings/burden", title: "Labor burden", description: "Workers comp, payroll tax rates.", icon: ShieldCheck },
+  { href: "/settings/manufacturers", title: "Manufacturers", description: "Suppliers + order email destinations.", icon: Factory },
+  { href: "/settings/integrations", title: "Integrations", description: "GoHighLevel webhook URLs.", icon: Plug },
   { href: "/settings/users", title: "Users & roles", description: "Admins, sales reps, installers.", icon: Users },
 ];
 

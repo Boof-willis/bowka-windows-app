@@ -124,9 +124,12 @@ export interface Job {
   measured_at: string | null;
   installed_at: string | null;
   completed_at: string | null;
+  manufacturer_id: string | null;
   manufacturer_name: string | null;
   manufacturer_order_number: string | null;
   manufacturer_order_placed_at: string | null;
+  manufacturer_order_sent_at: string | null;
+  manufacturer_order_sent_to: string | null;
   actual_material_cost_cents: number | null;
   actual_labor_payout_cents: number | null;
   actual_consumable_cost_cents: number | null;

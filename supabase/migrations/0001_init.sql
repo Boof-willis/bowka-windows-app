@@ -406,16 +406,24 @@ create trigger create_job_on_accept
 -- AUTO-CREATE PROFILE ON SIGNUP
 -- ============================================================
 create or replace function public.tg_create_profile()
-returns trigger language plpgsql security definer as $$
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
 begin
   insert into public.profiles (id, email, full_name, role)
   values (
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data->>'full_name', new.email),
-    coalesce((new.raw_user_meta_data->>'role')::user_role, 'sales_rep')
+    coalesce(nullif(new.raw_user_meta_data->>'role', '')::user_role, 'sales_rep')
   )
   on conflict (id) do nothing;
+  return new;
+exception when others then
+  -- never let profile creation fail the auth signup; backfill via SQL if needed
+  raise warning 'tg_create_profile failed for %: %', new.id, sqlerrm;
   return new;
 end;
 $$;

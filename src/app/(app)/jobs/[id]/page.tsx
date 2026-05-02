@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, Upload } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile, canSeeCosts } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -12,7 +12,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatMoney } from "@/lib/format";
 import { calcJobPnL } from "@/lib/pnl";
 import type { BurdenRate, ConsumableRate, LaborPayout, Lender, LoanPlan, Quote, Window, Job } from "@/types/db";
-import { addLaborPayout, addConsumableOverride, addDumpTrip } from "../actions";
+import { addLaborPayout, addConsumableOverride, addDumpTrip, markManufacturerOrderSent } from "../actions";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Send, FileDown } from "lucide-react";
 import { InvoiceUpload } from "./invoice-upload";
 import { PhotoUploader } from "./photo-uploader";
 
@@ -30,6 +32,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const { data: windows } = await supabase.from("windows").select("*").eq("quote_id", typedJob.quote_id).order("position");
   const { data: invoices } = await supabase.from("manufacturer_invoices").select("*").eq("job_id", id).order("created_at", { ascending: false });
   const { data: photos } = await supabase.from("job_photos").select("*").eq("job_id", id).order("created_at", { ascending: false });
+  const { data: manufacturers } = await supabase.from("manufacturers").select("*").eq("active", true).order("name");
   const { data: payouts } = await supabase.from("labor_payouts").select("*").eq("job_id", id).order("created_at", { ascending: false });
   const { data: overrides } = await supabase.from("job_consumables").select("*").eq("job_id", id);
   const { data: dumpJoin } = await supabase
@@ -121,6 +124,70 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                 <PnLRow label="Margin" value={`${pnl.margin_pct.toFixed(1)}%`} />
               </div>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Manufacturer order */}
+      {showCosts && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Manufacturer order</CardTitle>
+            <CardDescription>
+              {typedJob.manufacturer_order_sent_at ? (
+                <>
+                  Sent {new Date(typedJob.manufacturer_order_sent_at).toLocaleString()}
+                  {typedJob.manufacturer_name && ` to ${typedJob.manufacturer_name}`}
+                  {typedJob.manufacturer_order_number && ` · Order #${typedJob.manufacturer_order_number}`}
+                </>
+              ) : (
+                <>Download the order PDF, send to your supplier, then mark as sent.</>
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4 flex items-center gap-2">
+              <Button variant="outline" asChild size="sm">
+                <a href={`/api/quotes/${typedJob.quote_id}/order-form`} target="_blank" rel="noreferrer">
+                  <FileDown className="h-4 w-4" /> Download order PDF
+                </a>
+              </Button>
+            </div>
+            <form action={markManufacturerOrderSent.bind(null, id)} className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="manufacturer_id">Manufacturer</Label>
+                <Select name="manufacturer_id" defaultValue={typedJob.manufacturer_id ?? ""}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>
+                    {(manufacturers ?? []).map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="sent_to">Sent to (email)</Label>
+                <Input
+                  id="sent_to"
+                  name="sent_to"
+                  type="email"
+                  defaultValue={typedJob.manufacturer_order_sent_to ?? (manufacturers?.[0]?.order_email ?? "")}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="order_number">Order # (theirs)</Label>
+                <Input
+                  id="order_number"
+                  name="order_number"
+                  defaultValue={typedJob.manufacturer_order_number ?? ""}
+                />
+              </div>
+              <div className="md:col-span-3">
+                <Button type="submit">
+                  <Send className="h-4 w-4" /> Mark as sent
+                </Button>
+              </div>
+            </form>
           </CardContent>
         </Card>
       )}

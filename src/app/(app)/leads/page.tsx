@@ -50,7 +50,7 @@ export default async function LeadsPage() {
               </TableRow>
             )}
             {(leads ?? []).map((l) => (
-              <TableRow key={l.id} className="cursor-pointer" onClick={() => {}}>
+              <TableRow key={l.id}>
                 <TableCell>
                   <Link href={`/leads/${l.id}`} className="font-medium hover:underline">
                     {l.customer_name}
