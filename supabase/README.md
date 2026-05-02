@@ -3,7 +3,7 @@
 ## First-time
 
 1. Create a new Supabase project at https://supabase.com/dashboard
-2. Copy `URL`, `anon key`, and `service_role key` into `bowka-ops/.env.local`
+2. Copy `URL`, `anon key`, and `service_role key` into `boka-glass-app/.env.local`
 3. In the SQL editor, run migrations in order:
    - `migrations/0001_init.sql` — tables, enums, triggers
    - `migrations/0002_rls.sql` — RLS policies + storage buckets

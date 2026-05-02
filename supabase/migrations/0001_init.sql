@@ -1,4 +1,4 @@
--- Bowka Ops — initial schema
+-- Boka Glass — initial schema
 -- Lead → Quote → Job lifecycle with per-window line items, financing, consumables, labor, dump fees.
 
 create extension if not exists "pgcrypto";

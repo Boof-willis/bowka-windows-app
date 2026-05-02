@@ -45,7 +45,7 @@ export function Nav({ role, email }: { role: UserRole; email: string }) {
     <nav className="flex h-screen w-60 flex-col border-r bg-card">
       <div className="flex h-14 items-center gap-2 border-b px-4">
         <CircleDollarSign className="h-5 w-5" />
-        <span className="font-semibold">Bowka Ops</span>
+        <span className="font-semibold">Boka Glass</span>
       </div>
       <div className="flex-1 space-y-1 p-3">
         {ITEMS.filter((i) => i.roles.includes(role)).map((item) => {

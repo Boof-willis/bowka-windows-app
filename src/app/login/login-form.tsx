@@ -48,7 +48,7 @@ export function LoginForm() {
     <div className="flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-xl">Bowka Ops</CardTitle>
+          <CardTitle className="text-xl">Boka Glass</CardTitle>
           <CardDescription>Sign in with your admin, rep, or installer account.</CardDescription>
         </CardHeader>
         <CardContent>

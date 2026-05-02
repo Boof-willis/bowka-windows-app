@@ -1,6 +1,6 @@
-# Bowka Ops
+# Boka Glass App
 
-Internal operations + P&L app for **Bowka Windows**. Tracks leads → quotes → jobs, ingests manufacturer invoices via AI, and rolls up cost averages at a per-tag granularity (nail fin, tempered, obscured, grid, etc.).
+Internal operations + P&L app for **Boka Glass**. Tracks leads → quotes → jobs, ingests manufacturer invoices via AI, and rolls up cost averages at a per-tag granularity (nail fin, tempered, obscured, grid, etc.).
 
 Stack: Next.js 15 (App Router) + Tailwind + Supabase (Postgres / Auth / Storage) + Anthropic Claude for invoice extraction. Deploys to Cloudflare Pages via `@opennextjs/cloudflare`.
 
@@ -9,7 +9,7 @@ Stack: Next.js 15 (App Router) + Tailwind + Supabase (Postgres / Auth / Storage)
 ## Local setup
 
 ```bash
-cd bowka-ops
+cd boka-glass-app
 npm install
 cp .env.local.example .env.local
 # fill in Supabase + Anthropic keys
@@ -143,7 +143,7 @@ Set env vars on the Cloudflare dashboard:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `ANTHROPIC_API_KEY`
-- `NEXT_PUBLIC_APP_URL` (e.g. `https://ops.bowkawindows.com`)
+- `NEXT_PUBLIC_APP_URL` (e.g. `https://app.bokaglass.com`)
 
 ---
 
